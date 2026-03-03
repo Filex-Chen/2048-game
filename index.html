@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8">
+    <title>2048網頁版</title>
+    <style>
+        .red {
+            color: #FFFFFF;
+            padding: 5px 10px;
+            text-decoration: none;
+            display: block;
+            border-radius: 5px;
+            margin: 2px 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .center {
+            display: flex;
+            justify-content: center; /* 水平置中 */
+            align-items: center; /* 垂直置中 */
+        }
+
+        .controls {
+            width: 380px;
+            margin: 0 auto;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button, select {
+            padding: 10px 15px;
+            background: #2f9dff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:disabled{
+            opacity: 0.5;
+            cursor: not-allowed; /* 顯示禁止手勢 */
+         }
+            button:not(:disabled):hover, select:hover {
+                transform: translateY(-4px);
+                background: #148dfa;
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+                transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            button:disabled,select:disabled {
+                opacity: 0.5;
+            }
+
+        .animated {
+            font-size: 60px;
+            background: linear-gradient( 45deg, #148dfa, #2f9dff, #4aaaff, #68b7ff, #86c3ff, #148dfa );
+            background-size: 25%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow 5s linear infinite;
+            font-family: "標楷體", "DFKai-SB", "KaiTi", serif;
+        }
+
+        @keyframes rainbow {
+            0% {
+                background-position: 0%;
+            }
+
+            100% {
+                background-position: 100%;
+            }
+        }
+        /* 跑馬燈外框 */
+
+        body {
+            margin: 0;
+            padding-bottom: 40px; /* 避免內容被跑馬燈擋住 */
+            background: #121212; /* 黑色背景 */
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .marquee {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            overflow: hidden;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .marquee-inner {
+            width: 1000px;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+        /* 文字本體 */
+        .marquee-track {
+            white-space: nowrap;
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 15s linear infinite;
+        }
+
+            .marquee-track span {
+                padding-right: 50px;
+                font-size: 20px;
+                color: #86c3ff;
+            }
+
+        /* 右進左出 */
+        @keyframes marquee {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+        /*2048顯示*/
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 80px);
+            grid-template-rows: repeat(4, 80px);
+            gap: 10px;
+            position: relative;
+            width: max-content;
+            margin: 0 auto;
+        }
+
+        .cell {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            border-radius: 10px;
+            background: #ccc;
+        }
+
+        .empty {
+            background: #ffffff; /* 你想要的空格顏色 */
+        }
+
+        .num-2 {
+            background: #eee4da;
+        }
+
+        .num-4 {
+            background: #ede0c8;
+        }
+
+        .num-8 {
+            background: #f2b179;
+        }
+
+        .num-16 {
+            background: #f59563;
+        }
+
+        .num-32 {
+            background: #f67c5f;
+        }
+
+        .num-64 {
+            background: #f65e3b;
+        }
+
+        .num-128 {
+            background: #edcf72;
+        }
+
+        .num-256 {
+            background: #edcc61;
+        }
+
+        .num-512 {
+            background: #edc850;
+        }
+
+        .num-1024 {
+            background: #edc53f;
+        }
+
+        .num-2048 {
+            background: #edc22e;
+        }
+
+        .num-4096 {
+            background: #edc22e;
+        }
+
+        .num-8192 {
+            background: #edc22e;
+        }
+        /* 結束畫面遮罩 */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+            .overlay.show {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+        .overlay-box {
+            width: 350px;
+            padding: 20px;
+            text-align: center;
+            transform: scale(0.7);
+            opacity: 0;
+            animation: popup 0.3s forwards;
+            color: #000000;
+            box-sizing: border-box;
+        }
+
+        @keyframes popup {
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .overlay-title {
+            /*font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 10px;*/
+        }
+
+        .overlay-score {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .overlay-btn {
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            background: #28a745;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+            .overlay-btn:hover {
+                transform: translateY(-4px);
+                background: #218838;
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+            }
+        #start-screen {
+            position: fixed; /* 固定在螢幕上 */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #121212; /* 跟背景一樣的黑色 */
+            z-index: 1000; /* 確保它蓋在遊戲畫面上面 */
+        }
+
+        .start-box {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #444;
+            border-radius: 10px;
+            background: #1e1e1e;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen" class="center">
+        <div class="start-box">
+            <h1 class="animated">2048 網頁版</h1>
+            <input type="password" id="password-input" placeholder="請輸入密碼">
+            <br><br>
+            <button onclick="showmessage()">開始遊戲</button>
+        </div>
+    </div>
+        <div id="game-screen" style="display:none;">
+            <div>
+                <h1 class="animated">2048網頁版</h1>
+            </div>
+            <hr />
+            <div class="center">
+                <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" class="red" title="不要點開">2048遊戲</a>
+            </div>
+            <div class="center">
+                <div class="controls">
+                    分數:<span id="score-display">0</span>
+                    歷史最高分: <span id="highscore-display">0</span>
+                </div>
+            </div>
+            <div class="controls">
+                <div style="font-size: 14px; font-weight: bold; color: var(--text-dark);">
+                    目標:
+                    <select id="goal-select">
+                        <option value="16">16</option>
+                        <option value="32">32</option>
+                        <option value="64">64</option>
+                        <option value="128">128</option>
+                        <option value="256">256</option>
+                        <option value="512">512</option>
+                        <option value="1024">1024</option>
+                        <option value="2048" selected>2048</option>
+                        <option value="4096">4096</option>
+                        <option value="8192">8192</option>
+                    </select>
+                </div>
+                <button id="music-btn" onclick="toggleMusic()">🎵 音樂</button>
+                <button id="undo-btn" onclick="undo()" disabled>復原</button>
+                <button onclick="resetGame()">新遊戲</button>
+            </div>
+            <div class="grid">
+                <div id="cell-0-0" class="cell"></div>
+                <div id="cell-0-1" class="cell"></div>
+                <div id="cell-0-2" class="cell"></div>
+                <div id="cell-0-3" class="cell"></div>
+                <div id="cell-1-0" class="cell"></div>
+                <div id="cell-1-1" class="cell"></div>
+                <div id="cell-1-2" class="cell"></div>
+                <div id="cell-1-3" class="cell"></div>
+                <div id="cell-2-0" class="cell"></div>
+                <div id="cell-2-1" class="cell"></div>
+                <div id="cell-2-2" class="cell"></div>
+                <div id="cell-2-3" class="cell"></div>
+                <div id="cell-3-0" class="cell"></div>
+                <div id="cell-3-1" class="cell"></div>
+                <div id="cell-3-2" class="cell"></div>
+                <div id="cell-3-3" class="cell"></div>
+                <div id="overlay" class="overlay">
+                    <div class="overlay-box">
+                        <div id="overlay-title" class="overlay-title"></div>
+                        <div class="overlay-score">分數：<span id="overlay-score-num">0</span></div>
+                        <div class="overlay-score">歷史最高分：<span id="overlay-highscore-num">0</span></div>
+                        <button id="overlay-reset" class="overlay-btn" onclick="resetGame()">重新開始</button>
+                    </div>
+                </div>
+            </div>
+            <button onclick="show()">重整</button>
+            <div class="marquee">
+                <div class="marquee-inner">
+                    <div class="marquee-track">
+                        <span>網頁施工中 🚧</span>
+                        <span>⚠️ 遊戲已上線</span>
+                        <span>⚠️ 復原已上線</span>
+                        <span>⚠️ 音樂已上線</span>
+                        <span>🐈 歡迎加入地球貓貓教🚀</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            function showmessage() {
+                const input = document.getElementById('password-input').value;
+                const startScreen = document.getElementById('start-screen');
+                const gameScreen = document.getElementById('game-screen');
+
+                if (input === '2048') {
+                    startScreen.style.display = 'none';
+                    gameScreen.style.display = 'block';
+                    init();
+                } else {
+                    alert("密碼錯誤");
+                }
+            }
+
+            // 加入這一小段，讓「按下 Enter 鍵」也可以觸發驗證
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    showmessage();
+                }
+            });
+            function show() {
+                let i = 1;
+                while (true) {
+                    alert("重整第" + i + "次");
+                    i++
+                }
+            }
+            function resetGame() {
+                hideOverlay();
+                init();
+            }
+            //#228b22 0%, #0fae1a 35%, #00e500 60%, #2bff3d 85%, #50fa33
+            let howtowin = 2048;
+            let win = 0;
+            let score = 0;
+            let x, y;
+            let highscore = 0;
+            let write;
+            let tmp;
+            let history = null;
+            let keyboardBound = false;
+            let s = [
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0]
+            ];
+            const bgMusic = new Audio("1.mp3");
+            bgMusic.loop = true;
+            const musicBtn = document.getElementById('music-btn');
+            const undoBtn = document.getElementById('undo-btn');
+            function check_game_over() {
+                let canmove = false;
+                for (let i = 0; i < 4; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        if (s[i][j] == 0)
+                            canmove = true;
+                        if ((i < 3) && (s[i][j] != 0) && (s[i + 1][j] == s[i][j]))
+                            canmove = true;
+                        if ((j < 3) && (s[i][j] != 0) && (s[i][j + 1] == s[i][j]))
+                            canmove = true;
+                    }
+                }
+                if (canmove == false) win = -1;
+            };
+            function game_win() {
+                for (let i = 0; i < 4; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        if (s[i][j] >= howtowin)
+                            win = 1;
+                    }
+                }
+            };
+            function draw() {
+                for (let i = 0; i < 4; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        const cell = document.getElementById(`cell-${i}-${j}`);
+                        const value = s[i][j];
+
+                        cell.textContent = value === 0 ? "" : value;
+
+                        // 先移除舊顏色
+                        cell.className = "cell";
+
+                        // 加上新的顏色 class
+                        if (value === 0)
+                            cell.classList.add("empty");
+                        else
+                            cell.classList.add(`num-${value}`);
+                    }
+                }
+            }
+            function getNullIndex() {
+                let array = [];
+                for (let i = 0; i < 4; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        if (s[i][j] == 0) array.push(i * 4 + j);
+                    }
+                }
+                if (array.length === 0) return -1;
+                return array[Math.floor(Math.random() * array.length)];
+            }
+            function make_number(isFirst) {
+                let number, j;
+                let k = Math.floor(Math.random() * 100) + 1;
+                if (isFirst) {
+                    if (k > 95) {
+                        k = 2;
+                        j = 4;
+                    }
+                    else if (k < 96) {
+                        k = 1;
+                        j = 2;
+                    }
+                }
+                else {
+                    k = 1;
+                    let l = Math.floor(Math.random() * 100) + 1;
+                    if (l > 95) {
+                        j = 4;
+                    }
+                    else if (l < 96) {
+                        j = 2;
+                    }
+                }
+                for (let i = 0; i < k; i++) {
+                    number = getNullIndex();
+                    if (number > -1) {
+                        s[Math.floor(number / 4)][number % 4] = j;
+                    }
+                }
+            }
+            function cloneBoard(board) {
+                return board.map(row => row.slice());
+            }
+            function saveHistory() {
+                history = {
+                    board: cloneBoard(s),
+                    score: score
+                };
+                updateUndoBtn();
+            }
+            function undo() {
+                if (!history) return;
+                s = cloneBoard(history.board);
+                score = history.score;
+                history = null;
+                updateUndoBtn();
+                draw();
+            }
+            function updateUndoBtn() {
+                undoBtn.disabled = !history;
+            }
+            function moveUp() {
+                saveHistory();
+                for (y = 0; y < 4; y++) {
+                    write = 0;
+                    let merged = [0, 0, 0, 0];
+                    for (x = 0; x < 4; x++) {
+                        if (s[x][y] != 0) {
+                            tmp = s[x][y];
+                            s[x][y] = 0;
+                            s[write++][y] = tmp;
+                        }
+                    }
+                    for (x = 1; x < 4; x++) {
+                        if ((s[x][y] == s[x - 1][y]) && (s[x][y] != 0) && (!merged[x - 1])) {
+                            s[x - 1][y] = s[x][y] * 2;
+                            score += s[x][y];
+                            document.getElementById('score-display').textContent = score;
+                            s[x][y] = 0;
+                            merged[x - 1] = 1;
+                        }
+                    }
+                    write = 0;
+                    for (x = 0; x < 4; x++) {
+                        if (s[x][y] != 0) {
+                            tmp = s[x][y];
+                            s[x][y] = 0;
+                            s[write++][y] = tmp;
+                        }
+                    }
+                }
+            }
+            function moveDown() {
+                saveHistory();
+                for (y = 0; y < 4; y++) {
+                    write = 3;
+                    let merged = [0, 0, 0, 0];
+                    for (x = 3; x >= 0; x--) {
+                        if (s[x][y] != 0) {
+                            tmp = s[x][y];
+                            s[x][y] = 0;
+                            s[write--][y] = tmp;
+                        }
+                    }
+                    for (x = 2; x >= 0; x--) {
+                        if ((s[x][y] == s[x + 1][y]) && (s[x][y] != 0) && (!merged[x + 1])) {
+                            s[x + 1][y] = s[x][y] * 2;
+                            score += s[x][y];
+                            document.getElementById('score-display').textContent = score;
+                            s[x][y] = 0;
+                            merged[x + 1] = 1;
+                        }
+                    }
+                    write = 3;
+                    for (x = 3; x >= 0; x--) {
+                        if (s[x][y] != 0) {
+                            tmp = s[x][y];
+                            s[x][y] = 0;
+                            s[write--][y] = tmp;
+                        }
+                    }
+                }
+            }
+            function moveLeft() {
+                saveHistory();
+                for (x = 0; x < 4; x++) {
+                    write = 0;
+                    let merged = [0, 0, 0, 0];
+                    for (y = 0; y < 4; y++) {
+                        if (s[x][y] != 0) {
+                            tmp = s[x][y];
+                            s[x][y] = 0;
+                            s[x][write++] = tmp;
+                        }
+                    }
+                    for (y = 0; y < 4; y++) {
+                        if (y > 0) {
+                            if ((s[x][y] == s[x][y - 1]) && (s[x][y] != 0) && (!merged[y - 1])) {
+                                s[x][y - 1] = s[x][y] * 2;
+                                score += s[x][y];
+                                document.getElementById('score-display').textContent = score;
+                                s[x][y] = 0;
+                                merged[y - 1] = 1;
+                            }
+                        }
+                    }
+                    write = 0;
+                    for (y = 0; y < 4; y++) {
+                        if (s[x][y] != 0) {
+                            tmp = s[x][y];
+                            s[x][y] = 0;
+                            s[x][write++] = tmp;
+                        }
+                    }
+                }
+            }
+            function moveRight() {
+                saveHistory();
+                for (x = 0; x < 4; x++) {
+                    write = 3;
+                    let merged = [0, 0, 0, 0];
+                    for (y = 3; y >= 0; y--) {
+                        if (s[x][y] != 0) {
+                            tmp = s[x][y];
+                            s[x][y] = 0;
+                            s[x][write--] = tmp;
+                        }
+                    }
+                    for (y = 2; y >= 0; y--) {
+                        if ((s[x][y] == s[x][y + 1]) && (s[x][y] != 0) && (!merged[y + 1])) {
+                            s[x][y + 1] = s[x][y] * 2;
+                            score += s[x][y];
+                            document.getElementById('score-display').textContent = score;
+                            s[x][y] = 0;
+                            merged[y + 1] = 1;
+                        }
+                    }
+                    write = 3;
+                    for (y = 3; y >= 0; y--) {
+                        if (s[x][y] != 0) {
+                            tmp = s[x][y];
+                            s[x][y] = 0;
+                            s[x][write--] = tmp;
+                        }
+                    }
+                }
+            }
+            function showOverlay(type) {
+                const overlay = document.getElementById('overlay');
+                const title = document.getElementById('overlay-title');
+                const scoreNum = document.getElementById('overlay-score-num');
+
+                scoreNum.textContent = score;
+
+                if (type === "win") title.textContent = "🎉 你贏了！";
+                else title.textContent = "💀 遊戲結束";
+
+                overlay.classList.add("show");
+            }
+            function hideOverlay() {
+                document.getElementById('overlay').classList.remove("show");
+            }
+            function toggleMusic() {
+                if (bgMusic.paused) {
+                    bgMusic.play().then(() => { musicBtn.innerText = "🎶 播放中"; }).catch(() => alert("未找到音檔"));
+                } else {
+                    bgMusic.pause();
+                    musicBtn.innerText = "🎵 音樂";
+                }
+            }
+            const goalSelect = document.getElementById('goal-select');
+
+            goalSelect.addEventListener('change', () => {
+                howtowin = parseInt(goalSelect.value);
+            });
+            function init() {
+                const storedHighscore = localStorage.getItem('2048_highscore');
+                if (storedHighscore) highscore = parseInt(storedHighscore);
+                document.getElementById('highscore-display').textContent = highscore;
+
+                howtowin = parseInt(goalSelect.value);
+                score = 0;
+                win = 0;
+                history = null;
+                s = [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ];
+                make_number(true);
+                draw();
+                updateUndoBtn();
+
+                if (win != 0) return;
+                if (!keyboardBound) {
+                    document.addEventListener("keydown", (e) => {
+                        console.log(e.key);
+                        if ((e.key === "ArrowUp") && (win == 0)) moveUp();
+                        if ((e.key === "ArrowDown") && (win == 0)) moveDown();
+                        if ((e.key === "ArrowLeft") && (win == 0)) moveLeft();
+                        if ((e.key === "ArrowRight") && (win == 0)) moveRight();
+                        game_win();
+                        check_game_over();
+                        if (win == 0) make_number(false);
+                        draw();
+
+                        document.getElementById('score-display').textContent = score;
+                        if (score > highscore) {
+                            highscore = score;
+                            localStorage.setItem('2048_highscore', highscore);
+                            document.getElementById('highscore-display').textContent = highscore;
+                        }
+
+                        if (win === 1) showOverlay("win");
+                        if (win === -1) showOverlay("lose");
+                    });
+                    keyboardBound = true;
+                }
+            }
+        </script>
+</body>
+</html>
