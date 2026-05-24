@@ -278,7 +278,7 @@
     </style>
 </head>
 <body>
-        <div id="game-screen" style="display:none;">
+        <div id="game-screen">
             <div>
                 <h1 class="animated">2048網頁版</h1>
             </div>
@@ -338,12 +338,6 @@
                     </div>
                 </div>
             </div>
-            <button onclick="show()">重整</button>
-            <div>showmessage = function () {
-    document.getElementById('start-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'block';
-    init();
-}</div>
             <div class="marquee">
                 <div class="marquee-inner">
                     <div class="marquee-track">
@@ -356,6 +350,7 @@
             </div>
         </div>
         <script>
+            window.onload = init;
             function resetGame() {
                 hideOverlay();
                 init();
