@@ -295,14 +295,6 @@
     </style>
 </head>
 <body>
-    <div id="start-screen" class="center">
-        <div class="start-box">
-            <h1 class="animated">2048 網頁版</h1>
-            <input type="password" id="password-input" placeholder="請輸入密碼">
-            <br><br>
-            <button onclick="showmessage()">開始遊戲</button>
-        </div>
-    </div>
         <div id="game-screen" style="display:none;">
             <div>
                 <h1 class="animated">2048網頁版</h1>
@@ -376,39 +368,11 @@
                         <span>⚠️ 遊戲已上線</span>
                         <span>⚠️ 復原已上線</span>
                         <span>⚠️ 音樂已上線</span>
-                        <span>🐈 歡迎加入地球貓貓教🚀</span>
                     </div>
                 </div>
             </div>
         </div>
         <script>
-            function showmessage() {
-                const input = document.getElementById('password-input').value;
-                const startScreen = document.getElementById('start-screen');
-                const gameScreen = document.getElementById('game-screen');
-
-                if (input === '2048') {
-                    startScreen.style.display = 'none';
-                    gameScreen.style.display = 'block';
-                    init();
-                } else {
-                    alert("密碼錯誤");
-                }
-            }
-
-            // 加入這一小段，讓「按下 Enter 鍵」也可以觸發驗證
-            document.addEventListener("keydown", function (event) {
-                if (event.key === "Enter") {
-                    showmessage();
-                }
-            });
-            function show() {
-                let i = 1;
-                while (true) {
-                    alert("重整第" + i + "次");
-                    i++
-                }
-            }
             function resetGame() {
                 hideOverlay();
                 init();
